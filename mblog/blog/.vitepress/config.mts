@@ -1,0 +1,76 @@
+import { defineConfigWithTheme } from "vitepress";
+import { getPosts, generateSidebar } from "./theme/utils";
+import { BlogliorelliTheme } from "./theme/types";
+import UnoCSS from 'unocss/vite'
+import { genFeed } from "./genFeed";
+
+
+// https://vitepress.dev/reference/site-config
+export default defineConfigWithTheme<BlogliorelliTheme>({
+  lang: "en-US",
+  title: "Ayuly's Blog",
+  description: "Ayuly's blog",
+  cleanUrls: true,
+  lastUpdated: true,
+  sitemap: {
+    hostname: "https://ayuly0.github.io",
+  },
+  vite: {
+    plugins: [UnoCSS()],
+  },
+  themeConfig: {
+    cursorOffset: 10,
+    posts: await getPosts(),
+    sidebar: await generateSidebar(),
+    rounded: '2px',
+    outline: { level: [2, 6] },
+
+    logo: "/logo.png",
+    nav: [
+      { text: 'Category', link: "/category", activeMatch: "/category" },
+      { text: 'Tags', link: "/tags", activeMatch: "/tags" },
+      { text: 'About', link: "/about", activeMatch: "/about" },
+    ],
+
+    search: {
+      provider: "local",
+      options: { detailedView: true, disableQueryPersistence: true },
+    },
+
+    socialLinks: [
+      { icon: "github", link: "https://github.com/ayuly0" },
+      { icon: "rss", link: "/feed.rss" }
+    ],
+    footer: {
+      message: "Released under the MIT License.",
+      copyright: "Copyright © 2026-present Ayuly",
+    },
+  },
+  buildEnd: genFeed,
+  head: [
+    [
+      "link",
+      {
+        rel: "icon",
+        type: "image/png",
+        href: "/logo.png",
+      },
+    ],
+    [
+      "meta",
+      {
+        name: "author",
+        content: "Ayuly",
+      },
+    ],
+    [
+      "link",
+      {
+        rel: "alternate",
+        type: "application/rss+xml",
+        href: "/feed.rss",
+        title: "Ayuly's Security Journal"
+      }
+    ],
+  ],
+});
