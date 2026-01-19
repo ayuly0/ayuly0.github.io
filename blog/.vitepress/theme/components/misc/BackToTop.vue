@@ -16,13 +16,27 @@ import { ref, onMounted, onUnmounted } from 'vue'
 
 const show = ref(false)
 const threshold = 300
+let lastScrollY = 0
 
 function scrollToTop() {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 function checkScroll() {
-  show.value = window.scrollY > threshold
+  const currentScrollY = window.scrollY
+  const isScrollingUp = currentScrollY < lastScrollY
+  const isAtTop = currentScrollY < threshold
+  // Check if close to bottom (within 50px)
+  const isAtBottom = (window.innerHeight + currentScrollY) >= (document.documentElement.scrollHeight - 50)
+
+  if (isAtTop || isAtBottom) {
+    show.value = false
+  } else {
+    // Show only if scrolling up
+    show.value = isScrollingUp
+  }
+
+  lastScrollY = currentScrollY
 }
 
 onMounted(() => {

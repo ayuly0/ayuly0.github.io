@@ -38,11 +38,10 @@ export default defineConfigWithTheme<BlogliorelliTheme>({
     },
 
     socialLinks: [
-      { icon: "github", link: "https://github.com/ayuly0" },
-      { icon: "rss", link: "/feed.rss" }
+      { icon: "github", link: "https://github.com/ayuly0" }
     ],
     footer: {
-      message: "Released under the MIT License.",
+      message: 'Released under the MIT License. <a href="/sitemap.xml">Sitemap</a> | <a href="/feed.rss">RSS</a>',
       copyright: "Copyright © 2026-present Ayuly",
     },
   },

@@ -19,7 +19,7 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.19",
     "unocss": "^66.6.0",
-    "vitepress": "^1.6.3",
+    "vitepress": "^1.6.4",
     "vue": "^3.5.15"
   },
   "scripts": {

@@ -232,6 +232,7 @@ root {
   font-weight: 900;
   /* font-black */
   transition: opacity 0.25s;
+  border: none;
 }
 
 .VPNavBarTitle:hover .title {
@@ -336,6 +337,7 @@ root {
   .VPSidebar {
     opacity: 0 !important;
     transition: opacity 0.4s ease-in-out;
+    padding-top: 96px !important;
   }
 
   .VPSidebar:hover {
@@ -367,4 +369,27 @@ root {
 
 .share-buttons {
   margin-top: 0px !important;
+}
+
+/**
+ * Mobile Z-Index Fixes (Search & Sidebar)
+ * Only apply on mobile where overlap occurs.
+ * -------------------------------------------------------------------------- */
+@media (max-width: 959px) {
+  .VPLocalSearchBox {
+    z-index: 2000 !important;
+  }
+
+  .VPSidebar {
+    z-index: 2000 !important;
+    padding-top: 96px !important;
+  }
+}
+
+/**
+ * Footer Visibility Fix
+ * Ensure footer is visible even when sidebar is present (default is hidden)
+ * -------------------------------------------------------------------------- */
+.VPFooter.has-sidebar {
+  display: block !important;
 }
