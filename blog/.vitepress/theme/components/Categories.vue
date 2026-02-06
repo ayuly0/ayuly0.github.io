@@ -92,7 +92,7 @@ function formatDate(date: string) {
   max-width: 900px;
   margin: 0 auto;
   padding: 2rem 1rem;
-  font-family: monospace, ui-monospace, SFMono-Regular; /* Terminal vibe */
+  font-family: var(--vp-font-family-base);
   min-height: 50vh;
 }
 

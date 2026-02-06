@@ -25,10 +25,17 @@
   "scripts": {
     "dev": "vitepress dev blog",
     "build": "vitepress build blog",
-    "preview": "vitepress preview blog"
+    "preview": "vitepress preview blog",
+    "new-post": "node scripts/new-post.js"
   },
   "dependencies": {
+    "@types/crypto-js": "^4.2.2",
+    "@types/markdown-it": "^14.1.2",
+    "@types/markdown-it-container": "^4.0.0",
     "canvas-confetti": "^1.9.3",
+    "crypto-js": "^4.2.0",
+    "markdown-it": "^14.1.0",
+    "markdown-it-container": "^4.0.0",
     "medium-zoom": "^1.1.0"
   }
 }

@@ -12,6 +12,8 @@ import LinkPreview from "./components/LinkPreview.vue";
 import FileDownload from "./components/FileDownload.vue";
 import Categories from "./components/Categories.vue";
 
+import ProtectedPost from "./components/ProtectedPost.vue";
+
 export default {
   extends: DefaultTheme,
   Layout: PostLayout,
@@ -21,5 +23,6 @@ export default {
     app.component("LinkPreview", LinkPreview);
     app.component("FileDownload", FileDownload);
     app.component("Categories", Categories);
+    app.component("ProtectedPost", ProtectedPost);
   },
 } satisfies Theme;

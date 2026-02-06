@@ -142,38 +142,38 @@ root {
 
 @media (min-width: 1280px) {
 
-  /* Remove the crazy max-width constraints and centering */
+  /* Override VitePress layout max-width */
+  :root {
+    --vp-layout-max-width: 100% !important;
+  }
+
   .VPDoc .container {
     max-width: 100% !important;
     display: flex !important;
-    justify-content: space-between !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
+    justify-content: center !important;
+    padding: 0 48px !important;
+    gap: 48px;
   }
 
-  /* Make content take available space but respect read-width */
   .VPDoc .content {
     margin: 0 !important;
-    margin-left: auto !important;
-    /* Push towards center/left */
-    margin-right: 0 !important;
-    width: auto !important;
+    width: 100% !important;
     max-width: 900px !important;
-    /* Slightly wider read area */
-    flex-grow: 1 !important;
+    flex: 1 1 auto !important;
+    min-width: 0;
   }
 
-  /* Force Aside (ToC) to the far right */
+  .VPDoc .content-container {
+    max-width: 100% !important;
+  }
+
   .VPDoc .aside {
     position: sticky !important;
     top: 80px !important;
-    /* Header height offset */
-    right: 0 !important;
-    padding-left: 2rem !important;
+    padding-left: 0 !important;
     width: 250px !important;
-    background: transparent !important;
-    display: block !important;
     flex-shrink: 0 !important;
+    align-self: flex-start;
   }
 
   .VPDocAside {
@@ -186,11 +186,22 @@ root {
   }
 }
 
+/* Larger screens: expand content more */
+@media (min-width: 1600px) {
+  .VPDoc .content {
+    max-width: 1100px !important;
+  }
+
+  .VPDoc .aside {
+    width: 280px !important;
+  }
+}
+
 .VPDocAsideOutline .outline-link {
   white-space: normal;
   overflow: visible;
   text-overflow: clip;
-  line-height: 2.3;
+  line-height: 2;
   padding-right: 0.5rem;
   font-size: 13px;
 }
@@ -225,18 +236,41 @@ root {
  * -------------------------------------------------------------------------- */
 .VPNavBarTitle .title {
   background: linear-gradient(to right, #6b21a8, #3b82f6);
-  /* from-purple-800 to-blue-500 */
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   font-weight: 900;
-  /* font-black */
   transition: opacity 0.25s;
   border: none;
 }
 
 .VPNavBarTitle:hover .title {
   opacity: 0.8;
+}
+
+/* Fix hover bleeding in navbar - gap areas should not trigger hover */
+.VPNavBar .content {
+  pointer-events: none;
+}
+
+.VPNavBar .content>* {
+  pointer-events: auto;
+}
+
+.VPNavBarTitle {
+  pointer-events: auto;
+}
+
+/* Normalize navbar padding across all pages (with/without sidebar) */
+.VPNavBar .wrapper {
+  padding-left: 24px !important;
+  padding-right: 24px !important;
+  max-width: 100% !important;
+}
+
+.VPNavBar.has-sidebar .wrapper {
+  padding-left: 24px !important;
+  padding-right: 24px !important;
 }
 
 /**
@@ -338,17 +372,22 @@ root {
     opacity: 0 !important;
     transition: opacity 0.4s ease-in-out;
     padding-top: 96px !important;
+    z-index: 50 !important;
   }
 
   .VPSidebar:hover {
     opacity: 1 !important;
   }
 
-  /* Fix Header Push - Dynamic Flexbox Reset */
+  /* Navbar must be above sidebar to prevent hover bleeding */
+  .VPNavBar {
+    z-index: 100 !important;
+    position: relative !important;
+  }
+
   .VPNavBar.has-sidebar .title {
     width: auto !important;
     position: relative !important;
-    /* Ensure it takes space in flex flow */
     background-color: transparent !important;
   }
 
@@ -357,7 +396,6 @@ root {
     margin-left: 0 !important;
   }
 
-  /* Fix Double Glass Effect */
   .VPNavBar .content-body {
     background-color: transparent !important;
   }
@@ -387,9 +425,43 @@ root {
 }
 
 /**
- * Footer Visibility Fix
- * Ensure footer is visible even when sidebar is present (default is hidden)
+ * Footer Improvements
+ * Better spacing, link styling, and visual hierarchy
  * -------------------------------------------------------------------------- */
 .VPFooter.has-sidebar {
   display: block !important;
+}
+
+.VPFooter {
+  border-top: 1px solid var(--vp-c-divider);
+  padding: 24px 32px !important;
+}
+
+.VPFooter .container {
+  max-width: 100% !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.VPFooter .message {
+  font-size: 14px;
+  color: var(--vp-c-text-2);
+}
+
+.VPFooter .message a {
+  color: var(--vp-c-brand-1);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.VPFooter .message a:hover {
+  color: var(--vp-c-brand-2);
+  text-decoration: underline;
+}
+
+.VPFooter .copyright {
+  font-size: 13px;
+  color: var(--vp-c-text-3);
 }

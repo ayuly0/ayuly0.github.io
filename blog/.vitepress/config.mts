@@ -5,6 +5,8 @@ import UnoCSS from 'unocss/vite'
 import { genFeed } from "./genFeed";
 
 
+import { markdownProtectionPlugin } from "./markdown-protection";
+
 // https://vitepress.dev/reference/site-config
 export default defineConfigWithTheme<BlogliorelliTheme>({
   lang: "en-US",
@@ -17,6 +19,11 @@ export default defineConfigWithTheme<BlogliorelliTheme>({
   },
   vite: {
     plugins: [UnoCSS()],
+  },
+  markdown: {
+    config: (md) => {
+      md.use(markdownProtectionPlugin);
+    }
   },
   themeConfig: {
     cursorOffset: 10,
