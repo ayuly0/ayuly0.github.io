@@ -141,19 +141,23 @@ h3 {
 
 .unlock-form {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.5rem;
     max-width: 400px;
     margin: 0 auto;
+    justify-content: center;
 }
 
 .password-input {
-    flex: 1;
-    padding: 0.6rem 1rem;
+    flex: 1 1 200px;
+    min-width: 0;
+    padding: 0.75rem 1rem;
     border: 1px solid var(--vp-c-divider);
     border-radius: 6px;
     background: var(--vp-c-bg);
     color: var(--vp-c-text-1);
     font-family: inherit;
+    font-size: 16px; /* Prevents iOS zoom on focus */
 }
 
 .password-input:focus {
@@ -162,14 +166,17 @@ h3 {
 }
 
 .unlock-btn {
-    padding: 0.6rem 1.2rem;
+    flex: 0 0 auto;
+    padding: 0.75rem 1.5rem;
     background: var(--vp-c-brand-1);
     color: white;
     border: none;
     border-radius: 6px;
     font-weight: 500;
+    font-size: 16px;
     cursor: pointer;
     transition: opacity 0.2s;
+    white-space: nowrap;
 }
 
 .unlock-btn:hover:not(:disabled) {
@@ -185,6 +192,7 @@ h3 {
     color: var(--vp-c-danger-1);
     font-size: 0.9rem;
     margin-top: 1rem;
+    width: 100%;
 }
 
 .content {
@@ -204,5 +212,26 @@ h3 {
 .fade-enter-from,
 .fade-leave-to {
     opacity: 0;
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+    .lock-screen {
+        padding: 1.5rem 1rem;
+    }
+
+    .unlock-form {
+        flex-direction: column;
+        max-width: 100%;
+    }
+
+    .password-input {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+
+    .unlock-btn {
+        width: 100%;
+    }
 }
 </style>
