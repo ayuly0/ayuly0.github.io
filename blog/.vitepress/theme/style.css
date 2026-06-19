@@ -465,3 +465,15 @@ root {
   font-size: 13px;
   color: var(--vp-c-text-3);
 }
+
+/**
+ * Interactive Mermaid Viewer
+ * -------------------------------------------------------------------------- */
+.vp-doc .mermaid {
+  cursor: zoom-in;
+  transition: opacity 0.2s;
+}
+
+.vp-doc .mermaid:hover {
+  opacity: 0.9;
+}

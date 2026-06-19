@@ -20,6 +20,10 @@
     <template #home-hero-before>
       <Home />
     </template>
+    
+    <template #layout-bottom>
+      <MermaidViewer />
+    </template>
   </Layout>
 </template>
 
@@ -32,6 +36,8 @@ import PostTitle from "./post/PostTitle.vue";
 import PostTags from "./post/PostTags.vue";
 import BackToTop from "./misc/BackToTop.vue";
 import ShareButtons from "./post/ShareButtons.vue";
+import MermaidViewer from "./misc/MermaidViewer.vue";
+import { openViewer } from "../composables/useMermaidViewer";
 
 import DefaultTheme from "vitepress/theme";
 const { Layout } = DefaultTheme;
@@ -57,6 +63,16 @@ const initZoom = () => {
 
 onMounted(() => {
   initZoom();
+  
+  // Delegate clicks on mermaid diagrams
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    const mermaidDiv = target.closest('.mermaid');
+    // Only open if click happened inside vp-doc to prevent misfires
+    if (mermaidDiv && target.closest('.vp-doc')) {
+      openViewer(mermaidDiv.innerHTML);
+    }
+  });
 });
 
 watch(

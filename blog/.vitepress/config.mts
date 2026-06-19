@@ -1,4 +1,5 @@
 import { defineConfigWithTheme } from "vitepress";
+import { withMermaid } from "vitepress-plugin-mermaid";
 import { getPosts, generateSidebar } from "./theme/utils";
 import { BlogliorelliTheme } from "./theme/types";
 import UnoCSS from 'unocss/vite'
@@ -8,7 +9,8 @@ import { genFeed } from "./genFeed";
 import { markdownProtectionPlugin } from "./markdown-protection";
 
 // https://vitepress.dev/reference/site-config
-export default defineConfigWithTheme<BlogliorelliTheme>({
+export default withMermaid(
+  defineConfigWithTheme<BlogliorelliTheme>({
   lang: "en-US",
   title: "Ayuly's Blog",
   description: "Ayuly's blog",
@@ -79,4 +81,5 @@ export default defineConfigWithTheme<BlogliorelliTheme>({
       }
     ],
   ],
-});
+  })
+);
