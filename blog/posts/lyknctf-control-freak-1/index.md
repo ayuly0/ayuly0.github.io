@@ -1,8 +1,7 @@
 ---
-title: "LYKNCTF - Control Freak 1: Reversing Permutations with Z3"
+title: LYKNCTF - Control Freak 1: Reversing Permutations with Z3
 date: 2026-07-08
 category: Reverse Engineering
-description: Modeling a complex multi-round permutation algorithm symbolically inside the Z3 solver to instantly crack the target flag.
 tags:
   - reverse
   - z3
@@ -167,7 +166,7 @@ Running the Z3 solving script constraints produces the valid flag values instant
 ![Z3 Execution Terminal Output](z3-script-flag.png)
 
 The solver resolves the flag:
-`LYKNCTF{z3_m4g1c_1s_50_c0n7r0l}`
+`LYKNCTF{H0W_D1D_Y0U_C0NTR0L_TH4T}`
 
 ---
 
