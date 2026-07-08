@@ -11,134 +11,108 @@ tags:
 
 # Pwnable.tw - Calc
 
-## Initial Analysis
-- **Binary**: `calc`
-- **Protections**:
-    - **Canary**: Enabled. Identified `__readgsdword(0x14u)` in `calc()`. This prevents standard buffer overflows by checking a secret value before returning.
-    - **NX**: Enabled. The stack is not executable (cannot run shellcode directly).
-    - **PIE**: Disabled. Addresses are fixed (0x8048000), making ROP easier.
+## 1. Initial Analysis & Protections
 
-## Code Analysis
-### `calc()`
-- We decompiled `calc()` and saw a `while(1)` loop processing expressions.
-- We identified the Stack Canary protection: `v3 = __readgsdword(0x14u)` at the start and the XOR check `__readgsdword(0x14u) ^ v3` at the end
-![main logic](./main-logic.png)
-## Finding the Vulnerability
-![parser logic](./parser-logic.png)
-The vulnerability is a logic bug in how `parse_expr` handles operators at the beginning of an expression.
+We audit the `calc` challenge binary. The compiler configured several standard security mitigations:
+- **Stack Canary**: Enabled. The main loop calls `__readgsdword(0x14u)` inside the `calc()` function. The system verifies this cookie value before function return to block standard stack buffer overflows.
+- **NX (No-Execute)**: Enabled. Stack memory permissions restrict direct execution, preventing shellcode injection payloads from running on the stack.
+- **PIE (Position Independent Executable)**: Disabled. The text section loads at a static base address (`0x08048000`), ensuring that Return-Oriented Programming (ROP) gadgets remain at fixed locations.
 
-If we send an expression starting with an operator (e.g., `+300`), `eval()` is called before any numbers are pushed to the stack.
-![eval logic](./eval-logic.png)
-1. `eval()` executes with `v1[0]` (count) as `0`.
-2. It tries to access `v1[-1]` (OOB read), performs an operation, and decrements `v1[0]` to `-1`.
-3. Then `parse_expr` parses the number `300`. It increments `v1[0]` back to `0` and writes `300` to `v1[0]`.
+---
 
-**Result**: We have overwritten `v1[0]` (the stack counter) with `300`.
-Subsequent operations will use this corrupted counter index (300) to access memory far outside the `v1` array bounds, allowing arbitrary Read/Write on the stack.
+## 2. Vulnerability Discovery
 
-## Exploitation Strategy
+Auditing the decompiled logic of `calc()` reveals a calculator parsing loop. 
 
-### 1. Leak Stack Address
-Since ASLR is enabled, we need to know the address of the stack to point to our string `/bin/sh`.
-- `v1[0]` starts at `ebp - 0x5A0` (1440 bytes).
-- `v1` is an array of 4-byte integers.
-- `1440 / 4 = 360`.
-- Therefore, `v1[360]` corresponds to `ebp` (Saved Base Pointer).
-- By sending `+360`, we leak the value of the Saved EBP, which points to the caller's stack frame. We can use this to calculate the address of our buffer.
+![Main Loop Logic](main-logic.png)
 
-### 2. ROP Chain
-With **NX** enabled, we cannot execute shellcode. We must construct a ROP chain to call `execve("/bin/sh", 0, 0)`.
-We need to set the registers:
-- `eax` = 11 (`0xb`)
-- `ebx` = pointer to `/bin/sh`
-- `ecx` = 0
-- `edx` = 0
-- `int 0x80`
+The vulnerability resides within the expression parsing logic inside `parse_expr`:
 
-**Gadgets Used** (found using `ROPgadget --binary calc`):
-- `pop eax; ret` (`0x0805c34b`)
-- `pop edx; ret` (`0x080701aa`)
-- `pop ecx; pop ebx; ret` (`0x080701d1`)
-- `int 0x80` (`0x08049a21`)
+![Parser Logic](parser-logic.png)
 
-Example command: `ROPgadget --binary calc | grep "pop eax ; ret"`
+When parsing an expression, the program relies on an operator stack to track evaluation operations. If we supply an operator at the absolute beginning of our expression (e.g., `+300`), the program attempts evaluation before pushing any numeric variables to the stack:
 
-### 3. Writing the Payload
-Using the OOB write primitive, we write the ROP chain starting at `v1[361]` (Return Address).
-We will overwrite the stack frame as follows:
+![Evaluation Logic](eval-logic.png)
 
-| Index | Offset | Content | Purpose |
-| :--- | :--- | :--- | :--- |
-| `v1[360]` | `ebp` | Saved EBP | Leak target address |
-| `v1[361]` | `ebp+4` | `pop eax; ret` | Gadget 1 (Return Address) |
-| `v1[362]` | `ebp+8` | `11` | syscall number for `execve` |
-| `v1[363]` | `ebp+12` | `pop edx; ret` | Gadget 2 |
-| `v1[364]` | `ebp+16` | `0` | envp = NULL |
-| `v1[365]` | `ebp+20` | `pop ecx; pop ebx; ret` | Gadget 3 |
-| `v1[366]` | `ebp+24` | `0` | argv = NULL |
-| `v1[367]` | `ebp+28` | **Stack Address of String** | Pointer to `/bin/sh` (for `ebx`) |
-| `v1[368]` | `ebp+32` | `int 0x80` | Syscall Trigger |
-| `v1[369]` | `ebp+36` | `/bin` | String Part 1 |
-| `v1[370]` | `ebp+40` | `/sh\0` | String Part 2 |
+The program executes `eval()` with `v1[0]` (the counter) initialized to `0`. 
+1. The logic reads from `v1[v1[0] - 1]`, which translates to `v1[-1]`. This out-of-bounds read accesses heap or stack structures.
+2. The logic performs the calculation, writes back, and decrements the counter `v1[0]` to `-1`.
+3. The parser then processes the trailing number `300`. It increments `v1[0]` back to `0` and assigns the parsed value `300` directly to `v1[0]`.
 
-We place the string `/bin/sh` at the end (`v1[369]`) so we can point `ebx` to it easily.
+This sequence corrupts the stack counter index, setting it to `300`. Subsequent calculation entries read and write at offsets relative to `v1[300]`, providing an arbitrary read/write primitive on the stack frame.
 
-### 4. Overcoming Limitations (The "Ascending Write" Strategy)
-During exploitation, we encountered a critical constraint:
-- `parse_expr` checks `if (v9 > 0)` before assigning to the array.
-- This means **we cannot directly write negative numbers** (or large unsigned integers like `0xffff...`) to the stack.
-- Attempting to write a gadget address like `0x08049a21` works, but a stack address like `0xffffd5c8` fails because it's interpreted as a negative integer by `atoi`.
+---
 
-#### The Solution: Side-Effect Writes
-The `eval` function logic is: `v1[offset-1] += v1[offset]`.
-We can use this side-effect to write *any* value to `v1[offset-1]` by manipulating `v1[offset]`.
+## 3. Exploitation Strategy
 
-**Algorithm**:
-To write `TARGET` to `v1[K]`:
-1. We target the *next* index `K+1` as a "helper".
-2. We calculate `DIFF = TARGET - v1[K]`.
+### 3.1. Stack Address Recovery
+Because ASLR shifts stack bases, we require a leak to determine the location of our payload string (`/bin/sh`). 
+- The `v1` array begins at offset `ebp - 0x5A0` (1440 bytes below the Saved EBP).
+- Since `v1` is an array of 4-byte integers, the distance in indices is `1440 / 4 = 360`.
+- Thus, index `360` (corresponding to `v1[360]`) maps directly to the Saved EBP pointer of the caller's frame.
+- Sending `+360` leaks the stack address.
+
+### 3.2. ROP Chain Architecture
+Because NX permissions block shellcode execution, we chain gadgets to invoke `execve("/bin/sh", NULL, NULL)`. The target parameters occupy the following registers:
+- `eax`: `11` (syscall identifier for `execve`)
+- `ebx`: pointer to `/bin/sh`
+- `ecx`: `0`
+- `edx`: `0`
+- `int 0x80` instruction to trigger the kernel interrupt
+
+Using `ROPgadget`, we locate the required helper gadgets:
+- `pop eax; ret` at `0x0805c34b`
+- `pop edx; ret` at `0x080701aa`
+- `pop ecx; pop ebx; ret` at `0x080701d1`
+- `int 0x80` at `0x08049a21`
+
+### 3.3. Overcoming `atoi` Restrictions: The "Ascending Write" Method
+
+A restriction complicates data injection:
+- The parser filters inputs using `atoi`.
+- `atoi` interprets large unsigned integers (like stack address pointers starting with `0xffff...`) or negative numbers as invalid expression inputs, preventing direct injection.
+
+We circumvent this validation by leveraging the side-effects of the evaluation step: `v1[offset-1] += v1[offset]`. Rather than writing values directly, we modify existing stack memory using addition:
+
+1. We target helper index `K+1` immediately following our target variable index `K`.
+2. We calculate the difference: `DIFF = TARGET - v1[K]`.
 3. We send `+(K+1)+DIFF`.
-   - `parse_expr` sets `v1[K+1] = DIFF`.
-   - `eval` executes `v1[K] += v1[K+1]`.
-   - Result: `v1[K]` becomes `TARGET`.
+4. The parser writes `DIFF` to `v1[K+1]`.
+5. The evaluation runs `v1[K] += v1[K+1]`, updating `v1[K]` to our exact `TARGET` value.
 
-**Ordering Matters**:
-We must write from **Lowest Index (361) to Highest (372)**.
-- Step 1: Fix `v1[361]` (Return Address) using `v1[362]` as helper.
-- Step 2: Fix `v1[362]` (using `v1[363]` as helper). This overwrites the "garbage" diff we used in Step 1.
-- ...
-- Step N: Fix `v1[372]` (last element).
+Because this evaluation relies on the current value of the stack slot, we write from **lowest memory index (361) to highest memory index (372)**. Each step updates the current index and leaves a diff value in the next index, which we overwrite in the subsequent step.
 
-### 5. Final Stack Layout
-We construct the following ROP chain using the strategy above:
+---
+
+## 4. Final Stack Frame Layout
+
+We lay out the ROP chain sequentially starting at index `361` (the return address location):
 
 | Index | Content | Purpose |
 | :--- | :--- | :--- |
-| `v1[360]` | `Saved EBP` | Leaked (Start of frame) |
-| `v1[361]` | `pop eax; ret` | Gadget 1 |
-| `v1[362]` | `11` | Syscall 11 (`execve`) |
-| `v1[363]` | `pop edx; ret` | Gadget 2 |
-| `v1[364]` | `0` | `envp` |
-| `v1[365]` | `pop ecx; pop ebx; ret` | Gadget 3 |
+| `v1[360]` | `Saved EBP` | Leaked Stack Pointer |
+| `v1[361]` | `pop eax; ret` | Gadget 1 (Set syscall index) |
+| `v1[362]` | `11` | `execve` Syscall ID |
+| `v1[363]` | `pop edx; ret` | Gadget 2 (Set envp pointer) |
+| `v1[364]` | `0` | `envp = NULL` |
+| `v1[365]` | `pop ecx; pop ebx; ret` | Gadget 3 (Set argv & path) |
 | `v1[366]` | `Stack Addr (argv)` | `ecx` -> `argv` array |
-| `v1[367]` | `Stack Addr (str)` | `ebx` -> `/bin/sh` |
-| `v1[368]` | `int 0x80` | Syscall Trigger |
-| `v1[369]` | `/bin` | String 1 |
-| `v1[370]` | `/sh\0` | String 2 |
-| `v1[371]` | `Stack Addr (str)` | `argv[0]` |
-| `v1[372]` | `0` | `argv[1]` |
+| `v1[367]` | `Stack Addr (str)` | `ebx` -> `/bin/sh` string |
+| `v1[368]` | `int 0x80` | Syscall Interrupt Trigger |
+| `v1[369]` | `/bin` | String payload segment 1 |
+| `v1[370]` | `/sh\0` | String payload segment 2 |
+| `v1[371]` | `Stack Addr (str)` | `argv[0]` element |
+| `v1[372]` | `0` | `argv[1] = NULL` |
 
-This robust chain handles the environment variations and `atoi` limitations perfectly.
+---
 
-## Getting the flag
+## 5. Execution and Verification
 
-Following the exploitation strategy, the final steps were executed:
-1. **Stack Leak**: Sent `+360` to leak the Saved EBP and calculate stack addresses for the ROP chain.
-2. **OOB Write**: Used the "Ascending Write" strategy to place the gadgets and the `/bin/sh` string on the stack.
-3. **Execution**: Sent an empty newline to trigger the function return and hijack the control flow.
+The exploit script runs in three stages:
+1. **Leak Stage**: Sends `+360` to parse the stack pointer and calculate absolute address offsets.
+2. **Write Stage**: Uses the ascending write sequence to inject the ROP chain and the `/bin/sh` string.
+3. **Execution Stage**: Sends an empty carriage return, causing the evaluation loop to terminate and return execution directly into the ROP chain.
 
-Executing the final payload successfully grants a shell:
+The chain redirects execution, spawning a shell on the target system:
 
-![got flag](./got-flag.png)
-
-The logic bug in `parse_expr` enabled arbitrary stack manipulation, which, combined with the lack of PIE, turned a simple OOB access into remote code execution.
+![Flag Capture](./got-flag.png)

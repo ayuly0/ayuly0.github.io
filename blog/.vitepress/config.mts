@@ -21,6 +21,9 @@ export default withMermaid(
   },
   vite: {
     plugins: [UnoCSS()],
+    ssr: {
+      noExternal: ['@panzoom/panzoom']
+    }
   },
   markdown: {
     config: (md) => {
