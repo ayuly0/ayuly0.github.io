@@ -3,7 +3,6 @@ title: "LYKNCTF - Control Freak 1: Reversing Permutations with Z3"
 date: 2026-07-08
 category: Reverse Engineering
 description: Modeling a complex multi-round permutation algorithm symbolically inside the Z3 solver to instantly crack the target flag.
-category: Reverse Engineering
 tags:
   - reverse
   - z3
